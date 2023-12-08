@@ -1,0 +1,22 @@
+import pandas as pd
+import numpy as np
+df = pd.read_csv("C:/Users/BenjaminWinsey/Desktop/Python/Preppin-Data-Challenges/2023 Week 2/Data Sources/Swift Codes.csv")
+# print(df)
+df2 = pd.read_csv("C:/Users/BenjaminWinsey/Desktop/Python/Preppin-Data-Challenges/2023 Week 2/Data Sources/Transactions.csv")
+# print(df2)
+df2["Sort Code"] = df2["Sort Code"].str.replace("-","")
+# print(df2)
+df3 = pd.merge(df, df2, how= "inner", left_on= df["Bank"], right_on=["Bank"])
+# print(df3)
+df3 = df3.drop(columns=["Bank_x", "Bank_y"])
+# print(df3)
+df3.loc[:, "Country Code"] = "GB"
+# print(df3)
+df3.astype({"Sort Code":"string","Account Number":"string","Transaction ID":"string", "SWIFT code":"string"})
+df3["Account Number"]=df3["Account Number"].apply(str)
+df3["IBAN"] = df3['Country Code'].str.cat(others=[df3['Check Digits'], df3["SWIFT code"], df3["Account Number"], df3["Sort Code"]])
+# print(df3)
+df3 = df3.drop(columns=["Account Number", "Check Digits", "Sort Code", "Country Code", "Bank", "SWIFT code"])
+print(df3)
+
+
