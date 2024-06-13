@@ -1,0 +1,51 @@
+SQL Script for Week 1 2023:
+
+* "Split the Transaction Code to extract the letters at the start of the transaction code. These identify the bank who processes the transaction
+Rename the new field with the Bank code 'Bank'. 
+Rename the values in the Online or In-person field, Online of the 1 values and In-Person for the 2 values. 
+Change the date to be the day of the week
+Different levels of detail are required in the outputs. You will need to sum up the values of the transactions in three ways" *
+
+SELECT 
+split_part(transaction_code,'-',1) As Bank_Code,
+CASE
+WHEN ONLINE_OR_IN_PERSON='1' THEN 'ONLINE'
+WHEN ONLINE_OR_IN_PERSON='2' THEN 'IN-PERSON' END AS ONLINE_OR_IN_PERSON,
+DATE(TRANSACTION_DATE, 'dd/MM/yyyy hh24:mi:ss') AS TRANSACTION_DATE1,
+DAYNAME(TRANSACTION_DATE1) AS TRANSACTION_DATE_WEEKDAY,
+*
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK01
+
+
+*"Total Values of Transactions by each bank"*
+
+SELECT
+SPLIT_PART(transaction_code, '-',1)as bank,
+sum(value)
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK01
+group by bank
+
+
+*"Total Values by Bank, Day of the Week and Type of Transaction (Online or In-Person)"*
+
+select 
+SPLIT_PART(transaction_code, '-',1)as bank,
+CASE
+WHEN ONLINE_OR_IN_PERSON='1' THEN 'ONLINE'
+WHEN ONLINE_OR_IN_PERSON='2' THEN 'IN-PERSON' END AS ONLINE_OR_IN_PERSON,
+DAYNAME(DATE(TRANSACTION_DATE, 'dd/MM/yyyy hh24:mi:ss')) AS TRANSACTION_DATE_WEEKDAY,
+sum(value) as Total_Value,
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK01
+group by 1,2,3;
+
+
+*"Total Values by Bank and Customer Code"*
+
+select
+SPLIT_PART(transaction_code, '-',1)as bank,
+customer_code,
+sum(value) as Total_Value
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK01
+group by SPLIT_PART(transaction_code, '-',1),
+customer_code;
+
