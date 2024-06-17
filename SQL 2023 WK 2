@@ -7,6 +7,8 @@ Hint: all these transactions take place in the UK so the Country Code should be 
 Create the IBAN as above
 Hint: watch out for trying to combine sting fields with numeric fields - check data types
 Remove unnecessary fields.
+
+
 WITH myTable as (
 select 
 replace(sort_code, '-', '') as A_Sort_Code,
