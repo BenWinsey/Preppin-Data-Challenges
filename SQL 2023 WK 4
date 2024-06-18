@@ -1,0 +1,96 @@
+Instructions:
+
+We want to stack the tables on top of one another, since they have the same fields in each sheet. We can do this one of 2 ways:
+Drag each table into the canvas and use a union step to stack them on top of one another
+Use a wildcard union in the input step of one of the tables
+Some of the fields aren't matching up as we'd expect, due to differences in spelling. Merge these fields together
+Make a Joining Date field based on the Joining Day, Table Names and the year 2023
+Now we want to reshape our data so we have a field for each demographic, for each new customer
+Make sure all the data types are correct for each field
+Remove duplicates
+If a customer appears multiple times take their earliest joining date
+
+
+with myTable as (
+select *,
+'2023_WK04_APRIL' AS TABLENAME
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_APRIL
+UNION ALL
+SELECT * ,
+'2023_WK04_AUGUST' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_AUGUST
+UNION ALL
+SELECT * ,
+'2023_WK04_DECEMBER' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_DECEMBER
+UNION ALL
+SELECT * ,
+'2023_WK04_FEBRUARY' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_FEBRUARY
+UNION ALL
+SELECT * ,
+'2023_WK04_JANUARY' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_JANUARY
+UNION ALL
+SELECT * ,
+'2023_WK04_JULY' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_JULY
+UNION ALL
+SELECT * ,
+'2023_WK04_JUNE' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_JUNE
+UNION ALL
+SELECT * ,
+'2023_WK04_JULY' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_MARCH
+UNION ALL
+SELECT * ,
+'2023_WK04_MAY' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_MAY
+UNION ALL
+SELECT * ,
+'2023_WK04_NOVEMBER' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_NOVEMBER
+UNION ALL
+SELECT * ,
+'2023_WK04_OCTOBER' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_OCTOBER
+UNION ALL
+SELECT * ,
+'2023_WK04_SEPTEMBER' AS TABLENAME
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK04_SEPTEMBER),
+
+PrePivot AS (
+Select 
+DATE_FROM_PARTS('2023',date_part('month',date(split_part(Tablename, '_', 3), 'MMMM')), Joining_day) as Joining_Date,
+ID,
+Demographic,
+Value,
+from myTable),
+
+PostPiv AS (
+select 
+ID,
+joining_date,
+ethnicity,
+Account_Type,
+Date_of_Birth::date as Date_of_Birth,
+row_number() OVER(PARTITION by ID ORDER BY joining_date ASC) AS DUPLICATE
+from PrePivot
+PIVOT(MAX(value) FOR demographic in ('Ethnicity', 'Date of Birth','Account Type')) AS P
+(
+ID,
+joining_date,
+ethnicity,
+Date_of_Birth,
+Account_Type
+))
+
+Select 
+ID,
+joining_date,
+ethnicity,
+Account_Type,
+Date_of_Birth::date as DoB
+from POSTPIV
+WHere DUPLICATE = 1
