@@ -1,0 +1,68 @@
+INSTRUCTIONS:
+Reshape the data so we have 5 rows for each customer, with responses for the Mobile App and Online Interface being in separate fields on the same row
+Clean the question categories so they don't have the platform in from of them
+e.g. Mobile App - Ease of Use should be simply Ease of Use
+Exclude the Overall Ratings, these were incorrectly calculated by the system
+Calculate the Average Ratings for each platform for each customer 
+Calculate the difference in Average Rating between Mobile App and Online Interface for each customer
+Catergorise customers as being:
+Mobile App Superfans if the difference is greater than or equal to 2 in the Mobile App's favour
+Mobile App Fans if difference >= 1
+Online Interface Fan
+Online Interface Superfan
+Neutral if difference is between 0 and 1
+Calculate the Percent of Total customers in each category, rounded to 1 decimal place
+
+PRACTICE:
+
+WITH UNPIVOT AS (
+select *
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK06_DSB_CUSTOMER_SURVEY
+UNPIVOT(RATING for PREFERENCE in (MOBILE_APP___EASE_OF_USE,MOBILE_APP___EASE_OF_ACCESS,MOBILE_APP___NAVIGATION,MOBILE_APP___LIKELIHOOD_TO_RECOMMEND, ONLINE_INTERFACE___EASE_OF_USE, ONLINE_INTERFACE___EASE_OF_ACCESS, ONLINE_INTERFACE___NAVIGATION, ONLINE_INTERFACE___LIKELIHOOD_TO_RECOMMEND))),
+
+myTABLE AS (
+SELECT 
+CUSTOMER_ID,
+SPLIT_PART(PREFERENCE, '___', 1) AS INTERFACE,
+SPLIT_PART(PREFERENCE, '___', 2) AS PREFERENCE,
+-- REPLACE(REPLACE(PREFERENCE, 'ONLINE_INTERFACE___', ''), 'MOBILE_APP___', '') AS PREFERENCE,
+RATING
+FROM UNPIVOT),
+
+AVGs AS (
+SELECT
+CUSTOMER_ID,
+INTERFACE AS INTERFACE1,
+AVG(RATING) AS AVGRATING
+FROM MYTABLE
+GROUP BY INTERFACE, CUSTOMER_ID),
+
+pAVG AS (
+SELECT *
+FROM AVGS
+PIVOT(MAX(AVGRATING) FOR INTERFACE1 IN ('MOBILE_APP', 'ONLINE_INTERFACE')) AS P
+(
+CUSTOMER_ID,
+MOBILE_APP,
+ONLINE_INTERFACE
+)),
+
+FINAL AS (
+SELECT
+(MOBILE_APP - ONLINE_INTERFACE) AS DIFFERENCE,
+CASE
+WHEN DIFFERENCE >=2 THEN 'MOBILE_SUPER_FAN'
+WHEN DIFFERENCE >=1 AND DIFFERENCE <2 THEN 'MOBILE_APP_FAN'
+WHEN DIFFERENCE <1 AND DIFFERENCE >-1 THEN 'NEUTRAL'
+WHEN DIFFERENCE <=-1 AND DIFFERENCE >-2 THEN 'ONLINE_FAN'
+WHEN DIFFERENCE <=-2 THEN 'ONLINE_SUPER_FAN'
+END AS CODE,
+*
+FROM PAVG
+)
+
+SELECT
+CODE,
+COUNT(CODE)*100/ SUM(COUNT(CODE)) OVER() AS PERCENT,
+FROM FINAL
+GROUP BY CODE
