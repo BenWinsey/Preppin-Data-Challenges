@@ -1,0 +1,97 @@
+INSTRUCTIONS:
+
+For the Transaction Path table:
+Make sure field naming convention matches the other tables
+i.e. instead of Account_From it should be Account From
+For the Account Information table:
+Make sure there are no null values in the Account Holder ID
+Ensure there is one row per Account Holder ID
+Joint accounts will have 2 Account Holders, we want a row for each of them
+For the Account Holders table:
+Make sure the phone numbers start with 07
+Bring the tables together
+Filter out cancelled transactions 
+Filter to transactions greater than £1,000 in value 
+Filter out Platinum accounts
+
+
+with Account_information as (
+select 
+*
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK07_ACCOUNT_INFORMATION),
+
+Union1 as (
+select 
+split_part(account_holder_id, ', ', 1) as AccHolder1,
+*
+from ACCOUNT_INFORMATION),
+
+Union2 as (
+select
+split_part(account_holder_id, ', ', 2) as AccHolder1,
+*
+from account_information
+),
+
+FullUnion as (
+select * from UNION1
+union all
+select * from UNION2),
+
+
+ACCHOLDER AS (
+select 
+concat('0', CONTACT_NUMBER) AS CONTACT_NUMBER,
+to_char(ACCOUNT_HOLDER_ID)  AS ACCHOLDERID, 
+NAME, DATE_OF_BIRTH, 
+FIRST_LINE_OF_ADDRESS
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK07_ACCOUNT_HOLDERS),
+
+TRANSACTIOND AS (
+SELECT
+TRANSACTION_ID AS TRANSACTION_ID2, 
+TRANSACTION_DATE, 
+VALUE, 
+CANCELLED_
+FROM TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK07_TRANSACTION_DETAIL
+),
+
+TRANSACTION AS (
+select *
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK07_TRANSACTION_PATH as A
+inner join TRANSACTIOND as B
+on A.TRANSACTION_ID = B.TRANSACTION_ID2),
+
+ACCOUNT_INFORMATION_FULL AS (
+SELECT * 
+FROM fullunion
+inner join accholder
+on fullunion.ACCHOLDER1 = accholder.accholderid)
+
+
+ABC AS (
+SELECT 
+row_number() OVER(PARTITION by TRANSACTION_ID ORDER BY balance_date ASC) AS DUPLICATE1,
+* FROM ACCOUNT_INFORMATION_FULL AS C
+INNER JOIN TRANSACTION AS D
+ON C.ACCOUNT_NUMBER = D.ACCOUNT_TO)
+
+
+SELECT
+ACCHOLDERID,
+ACCOUNT_NUMBER,
+ACCOUNT_TYPE,
+BALANCE,
+CONTACT_NUMBER,
+NAME,
+DATE_OF_BIRTH,
+TRANSACTION_ID,
+ACCOUNT_TO,
+ACCOUNT_FROM,
+TRANSACTION_DATE,
+VALUE,
+CANCELLED_
+FROM ABC
+WHERE CANCELLED_ = 'N'
+AND VALUE > 1000
+and ACCOUNT_TYPE != 'Platinum'
