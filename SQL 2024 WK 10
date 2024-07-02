@@ -2,6 +2,8 @@ Instructions:
 
 Filter to the last 2 years of data i.e. only 2023 and 2024 transactions
 This will allow for year on year comparison
+Create additional rows of data for the days the store was closed, ensuring all other fields will have null values
+The store is closed on Sundays and Public Holidays
 Update the Cash_or_Card field so that:
 1=Card
 2=Cash
@@ -40,7 +42,7 @@ split_part("Product_ID",'-', 2) As Product,
 "Sales_Before_Discount"
 from
 TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2024_WK10_TRANSACTION
-Where Year(ParseDate) >= 2023),
+Where Year(ParseDate) = '2023' or year(ParseDate) = '2024'),
 
 
 
@@ -86,8 +88,9 @@ When "Loyalty_Tier" = 'Gold' then 'Gold'
 end as Loyalty_Tier1,
 replace("Loyalty_Discount", '%', '') as Loyalty_Discount1,
 *
-from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2024_WK10_LOYALTY)
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2024_WK10_LOYALTY),
 
+FullTable as (
 select 
 length(Loyalty_Discount1) discountlength,
 case
@@ -99,5 +102,58 @@ Sales_After_Discount-("Unit_Cost" * Quantity) As Profit,
 
 *
 from LoyaltyTable as A
-inner join ProductTransactionsTable as B
-on A."Loyalty_Number" = B."Loyalty_Number"
+Right join ProductTransactionsTable as B
+on A."Loyalty_Number" = B."Loyalty_Number"),
+
+
+"GAPLESS_ROW_NUMBERS" AS (
+  SELECT
+    ROW_NUMBER() OVER (ORDER BY seq4()) - 1 as "ROW_NUMBER" 
+  FROM TABLE(GENERATOR(rowcount => 366 * (2100 - 1970)) ) -- rowcount is 366 days x (2100 - 1970) years to cover leap years. A later filter can remove the spillover days
+),
+
+FullYearTable as (
+SELECT
+    DATEADD('day', "ROW_NUMBER", DATE(0)) as "DATE" -- Dimension starts on 1970-01-01 but a different value can be entered if desired
+  , EXTRACT(year FROM "DATE") as "YEAR"
+  , EXTRACT(month FROM "DATE") as "MONTH"
+  , EXTRACT(day FROM "DATE") as "DAY"
+  , EXTRACT(dayofweek FROM "DATE") as "DAY_OF_WEEK"
+  , EXTRACT(dayofyear FROM "DATE") as "DAY_OF_YEAR"
+  , EXTRACT(quarter FROM "DATE") as "QUARTER"
+  , MIN("DAY_OF_YEAR") OVER (PARTITION BY "YEAR", "QUARTER") as "QUARTER_START_DAY_OF_YEAR"
+  , "DAY_OF_YEAR" - "QUARTER_START_DAY_OF_YEAR" + 1 as "DAY_OF_QUARTER"
+  , TO_VARCHAR("DATE", 'MMMM') as "MONTH_NAME"
+  , TO_VARCHAR("DATE", 'MON') as "MONTH_NAME_SHORT"
+  , CASE "DAY_OF_WEEK"
+     WHEN 0 THEN 'Sunday'
+     WHEN 1 THEN 'Monday'
+     WHEN 2 THEN 'Tuesday'
+     WHEN 3 THEN 'Wednesday'
+     WHEN 4 THEN 'Thursday'
+     WHEN 5 THEN 'Friday'
+     WHEN 6 THEN 'Saturday'
+    END as "DAY_NAME"
+  , TO_VARCHAR("DATE", 'DY') as "DAY_NAME_SHORT"
+  , EXTRACT(yearofweekiso FROM "DATE") as "ISO_YEAR"
+  , EXTRACT(weekiso FROM "DATE") as "ISO_WEEK"
+  , CASE
+      WHEN "ISO_WEEK" <= 13 THEN 1
+      WHEN "ISO_WEEK" <= 26 THEN 2
+      WHEN "ISO_WEEK" <= 39 THEN 3
+      ELSE 4
+    END as "ISO_QUARTER"
+  , EXTRACT(dayofweekiso FROM "DATE") as "ISO_DAY_OF_WEEK"
+  , MAX("DAY_OF_YEAR") OVER (PARTITION BY "YEAR") as "DAYS_IN_YEAR"
+  , "DAYS_IN_YEAR" - "DAY_OF_YEAR" as "DAYS_REMAINING_IN_YEAR"
+FROM "GAPLESS_ROW_NUMBERS"
+where year = '2023' or year = '2024'),
+
+FullTransactionTable as (
+Select *
+from FullYearTable
+left join FullTable
+on Date = ParseDate)
+
+Select *
+from FullTransactionTable
