@@ -1,0 +1,31 @@
+Instrcutions:
+Split out the Description field into Speaker Name and Presentation Description
+Create the initials for each speaker
+e.g.  Jenny Martin becomes JM
+Categorize the Presentations into the following Subject areas:
+Prep
+Server
+Community
+Desktop
+Create a Boolean (True/False) field for identifying talks that mention deduplication 
+Filter to on talks that mention deduplication
+Remove unnecessary fields
+Output the data
+
+CODE:
+
+select
+SESSION_NUMBER, 
+split_part(DESCRIPTION, ':', 1) as Speaker,
+split_part(DESCRIPTION, ':', 2) as DESCRIPTION,
+left(description, 1) as Initials,
+Case
+when contains(DESCRIPTION, 'Desktop') or contains(DESCRIPTION, 'desktop') then 'Desktop'
+when contains(DESCRIPTION, 'Server') or contains(DESCRIPTION, 'server') then 'Server'
+when contains(DESCRIPTION, 'Community') or contains(DESCRIPTION, 'community') then 'Community'
+when contains(DESCRIPTION, 'Prep') or contains(DESCRIPTION, 'prep') then 'Prep'
+end as Subject,
+case when contains(description, 'deduplication') or contains(description, 'Deduplication') then 'TRUE' 
+ELSE 'FALSE' end as Dup_Flag
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK19
+where dup_flag = 'TRUE'
