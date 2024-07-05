@@ -1,0 +1,45 @@
+Instructions:
+Group meal types 
+
+Hint - veggie and vegetarian are the same type 
+
+Join the data sets together so you have the meal type and price for each meal 
+
+Remove the irrelevant fields
+
+Aggregate the data by meal type and average their price
+
+Calculate the percentage of total for each meal type 
+
+Hint - this blog post is helpful for this step
+
+Rename the fields to match the output data example 
+
+Output the data as a CSV
+
+
+
+Code:
+
+with CTE as (
+select 
+A.MEAL_OPTION as Meal_optionA,
+CALORIES__KCAL_,
+X,
+case
+when type in ('Vegetarian', 'Veggie') then 'Vegetarian'
+when type in ('Meat based', 'Meat-based') then 'Meat-Based'
+else TYPE end as Type,
+Price
+from
+TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK20_MEAL_NUTRITIONAL_INFO as A
+inner join TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK20_MEAL_PRICES as B
+on A.MEAL_OPTION =  B.MEAL_OPTION)
+
+
+Select
+Type,
+Avg(Price) as AvgPrice,
+COUNT(Meal_OptionA)*100/ SUM(COUNT(Meal_OptionA)) OVER() AS PERCENT
+from CTE
+group by Type
