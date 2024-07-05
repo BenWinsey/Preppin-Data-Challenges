@@ -1,0 +1,32 @@
+Instrcutions:
+Clean up the location names
+Reshape so that we have a field for each measure
+Calculate the Revenue 
+Price * Quantity
+Aggregate the data so we can perform our analysis at the Location level. We want to see the:
+Total Revenue
+Avg. Price per pack (rounded to 2 decimal places)
+Output the data
+
+
+
+
+Code:
+
+With Locations as (
+select
+*,
+LENGTH(LOCATION) as STRLength,
+case
+when STRLength = '9' then 'Liverpool'
+when STRLength = '10' then 'Manchester'
+when STRLength = '6' then 'London' end as LocationClean,
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2023_WK18
+Pivot(sum(value) for CATEGORY in ('Weight (kg)', 'Price (£) per pack', 'Quant per Q')) AS P)
+
+Select 
+locationclean,
+sum("'Price (£) per pack'" * "'Quant per Q'") as Revenue,
+avg("'Price (£) per pack'") AVGperPack
+from Locations
+group by LOCATIONCLEAN
