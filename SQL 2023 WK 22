@@ -5,7 +5,7 @@ Use a calculated field to clean up the test score column, so each number is a ro
 Split the student name column so we can see the first name and surname in two separate columns, named appropriately
 If any student has an attendance percentage less than 70%, flag it as "Low Attendance" in a new column "attendance flag". Conversely, if above 90%, flag as “high attendance”. And anything else as “Medium”.  
 
-
+ 
 
 Code:
 select 
