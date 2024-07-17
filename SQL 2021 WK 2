@@ -1,0 +1,58 @@
+INSTRUCTIONS:
+Clean up the Model field to leave only the letters to represent the Brand of the bike (help)
+Workout the Order Value using Value per Bike and Quantity.
+Aggregate Value per Bike, Order Value and Quantity by Brand and Bike Type to form: (help) 
+Quantity Sold
+Order Value
+Average Value Sold per Brand, Type
+Calculate Days to ship by measuring the difference between when an order was placed and when it was shipped as 'Days to Ship' (help)
+Aggregate Order Value, Quantity and Days to Ship by Brand and Store to form:
+Total Quantity Sold
+Total Order Value
+Average Days to Ship
+Round any averaged values to one decimal place to make the values easier to read
+
+
+CODE:
+WITH CTE AS (
+select
+BIKE_TYPE, 
+STORE, 
+DATE(ORDER_DATE, 'dd/MM/yyyy') as orderdate1,
+QUANTITY, 
+VALUE_PER_BIKE, 
+date(SHIPPING_DATE, 'dd/MM/yyyy') as shippingdate1,
+regexp_substr(MODEL, '[a-zA-Z]+') as BIKEMODEL,
+QUANTITY * VALUE_PER_BIKE AS ORDER_VALUE,
+from 
+TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2021_WK02_BIKE_SALES),
+
+
+SALES_BY_BRAND_TYPE AS (
+SELECT 
+BIKEMODEL,
+BIKE_TYPE,
+SUM(QUANTITY), 
+SUM(ORDER_VALUE),
+AVG(VALUE_PER_BIKE)
+FROM CTE
+GROUP BY
+BIKEMODEL,
+BIKE_TYPE),
+
+CTE2 as (
+SELECT 
+DATEDIFF('DAYS', orderdate1, shippingdate1) as datediff1,
+* FROM CTE),
+
+Sales_by_Brand_Store AS (
+select
+BIKEMODEL,
+STORE,
+SUM(QUANTITY),
+SUM(ORDER_VALUE),
+AVG(DATEDIFF1)
+FROM CTE2
+GROUP BY 
+BIKEMODEL,
+STORE)
