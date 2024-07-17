@@ -1,0 +1,51 @@
+INSTRUCTIONS:
+Split the Flight Details field to form:
+Date 
+Flight Number
+From
+To
+Class
+Price
+Convert the following data fields to the correct data types:
+Date to a date format
+Price to a decimal value
+Change the Flow Card field to Yes / No values instead of 1 / 0
+Create two tables, one for Flow Card holders and one for non-Flow Card holders
+
+CODE:
+with CTE as (
+select 
+split_part(FLIGHT_DETAILS, '//', 1) as Date1,
+split_part(FLIGHT_DETAILS, '//', 2) as Flight_Number,
+split_part(FLIGHT_DETAILS, '//', 3) as Flight_Details_,
+split_part(FLIGHT_DETAILS, '//', 4) as Class,
+split_part(FLIGHT_DETAILS, '//', 5) as Price,
+FLIGHT_DETAILS,
+FLOW_CARD, 
+BAGS_CHECKED, 
+MEAL_TYPE
+from
+TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2024_WK01),
+
+
+CTE2 AS (
+select 
+SPLIT_PART(FLIGHT_DETAILS_, '-', 1) AS FROM_,
+SPLIT_PART(FLIGHT_DETAILS_, '-', 2) AS TO_,
+DATE( Date1, 'yyyy-MM-dd') as Date2,
+case
+when FLOW_CARD = '1' THEN 'YES'
+WHEN FLOW_CARD = '0' THEN 'NO'
+END AS FLOW_CARD2,
+*
+from CTE),
+
+FLOWCARDHOLDER AS (
+SELECT *
+FROM CTE2
+WHERE FLOW_CARD2 = 'YES'),
+
+NON-FLOWCARDHOLDER AS (
+SELECT *
+FROM CTE2
+WHERE FLOW_CARD2 = 'NO')
