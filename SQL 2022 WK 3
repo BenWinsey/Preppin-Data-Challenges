@@ -1,0 +1,53 @@
+Instructions:
+Join the data sets together to give us the grades per student
+Remove the parental data fields, they aren't needed for the challenge this week
+Pivot the data to create one row of data per student and subject
+Rename the pivoted fields to Subject and Score 
+Create an average score per student based on all of their grades
+Create a field that records whether the student passed each subject
+Pass mark is 75 and above in all subjects
+Aggregate the data per student to count how many subjects each student passed
+Round the average score per student to one decimal place
+
+Code:
+with CTE as (
+select 
+"pupil first name", 
+"pupil last name", 
+"gender", 
+"Date of Birth",  
+"Preferred Contact Employer",
+"Student ID", 
+"Maths", 
+"English", 
+"Spanish", 
+"Science", 
+"Art", 
+"History", 
+"Geography"
+from TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2022_WK03 as A
+inner join TIL_PLAYGROUND.PREPPIN_DATA_INPUTS.PD2022_WK01 as B
+on "Student ID" = "id"),
+
+CTE2 AS (
+select
+case
+when STUDENT_SCORE >= 75 THEN '1'
+ELSE '0' END AS PASS_OR_FAIL,
+*
+from CTE
+unpivot (Student_Score for "Subject" in ("Maths", 
+"English", 
+"Spanish", 
+"Science", 
+"Art", 
+"History", 
+"Geography")))
+
+SELECT
+"Student ID",
+sum(cast(PASS_OR_FAIL as integer)) as count_passed,
+round(avg(Student_Score), 1) as Student_Score,
+"gender"
+FROM CTE2
+GROUP BY "Student ID", "gender"
