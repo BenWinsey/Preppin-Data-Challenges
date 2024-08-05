@@ -1,0 +1,111 @@
+Challenge taken from:
+https://8weeksqlchallenge.com/case-study-4/
+
+
+-- How many unique customer nodes are there on the Data Bank System?
+select 
+count (distinct NODE_ID) as UniqueNodeID, 
+from TIL_PLAYGROUND.CS4_DATA_BANK.CUSTOMER_NODES;
+
+-- What is the number of nodes oper region?
+
+select 
+region_name,
+count ( distinct NODE_ID) as UniqueNodeID
+from TIL_PLAYGROUND.CS4_DATA_BANK.CUSTOMER_NODES as A
+inner join TIL_PLAYGROUND.CS4_DATA_BANK.REGIONS as B
+on A.region_id = B.region_id
+group by region_name;
+
+-- How many customer are allocated to each region?
+
+select 
+region_name,
+count(distinct customer_id) as CustomerCount
+from TIL_PLAYGROUND.CS4_DATA_BANK.CUSTOMER_NODES as A
+inner join TIL_PLAYGROUND.CS4_DATA_BANK.REGIONS as B
+on A.region_id = B.region_id
+group by region_name;
+
+-- how many days are customers reallocated to a different node?
+with CTE as  (select 
+customer_id
+node_id,
+sum(datediff('days',start_date, end_date)) as Duration
+from TIL_PLAYGROUND.CS4_DATA_BANK.CUSTOMER_NODES
+where end_date <> '9999-12-31'
+group by node_id,customer_id)
+
+select 
+round(avg(Duration), 0) as Duration1
+from CTE;
+
+-- what is the median, 80th and 95th percentile for this same reallocation days metric for each region?
+
+with CTE as  (
+select 
+region_name,
+customer_id,
+node_id,
+sum(datediff('days',start_date, end_date)) as Duration
+from TIL_PLAYGROUND.CS4_DATA_BANK.CUSTOMER_NODES as A
+inner join TIL_PLAYGROUND.CS4_DATA_BANK.REGIONS as B
+on A.region_id = B.region_id
+where end_date <> '9999-12-31'
+group by region_name, node_id,customer_id)
+
+select 
+region_name,
+round(avg(Duration), 0) as Duration1,
+median(Duration) as MedianDuration,
+percentile_cont(0.80) within group (order by Duration) as Percetile1,
+percentile_cont(0.95) within group (order by Duration) as Percetile2
+from CTE
+group by region_name;
+
+-- How to work this out without prebuilt functions
+
+with CTE as  (
+select 
+region_name as Region_Name,
+customer_id,
+node_id,
+sum(datediff('days',start_date, end_date)) as Duration
+from TIL_PLAYGROUND.CS4_DATA_BANK.CUSTOMER_NODES as A
+inner join TIL_PLAYGROUND.CS4_DATA_BANK.REGIONS as B
+on A.region_id = B.region_id
+where end_date <> '9999-12-31'
+group by region_name, node_id,customer_id),
+
+Ranking as (
+select 
+region_name,
+Duration,
+row_number() over (partition by region_name order by Duration) as RowNumber
+from CTE
+),
+
+Calculations as (
+Select
+Region_name,
+Min(RowNumber) as MinRN,
+Max(RowNumber) as MaxRN
+from RANKING
+group by Region_Name
+)
+
+
+Select A.Region_Name,
+case
+when RowNumber = round((B.MaxRN/2),0) then 'MedianRN'
+when RowNumber = round((B.MaxRN*0.80),0) then 'PC_80th_RN'
+when RowNumber = round((B.MaxRN*0.95),0) then 'PC_95th_RN'
+end as Metric,
+Duration as Value
+from RANKING as A
+inner join CALCULATIONS as B
+on A.Region_name = B.Region_name
+where RowNumber in (
+round((B.MaxRN/2),0),
+round((B.MaxRN*0.80),0),
+round((B.MaxRN*0.95),0))
